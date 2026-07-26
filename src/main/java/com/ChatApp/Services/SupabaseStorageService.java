@@ -9,6 +9,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.annotation.PostConstruct;
 
 @Service
 public class SupabaseStorageService {
@@ -58,5 +59,11 @@ public class SupabaseStorageService {
                 bucket +
                 "/" +
                 fileName;
+    }
+     @PostConstruct
+    public void init() {
+        System.out.println("Supabase URL = " + supabaseUrl);
+        System.out.println("Bucket = " + bucket);
+        System.out.println("API Key Present = " + (apiKey != null && !apiKey.isEmpty()));
     }
 }
