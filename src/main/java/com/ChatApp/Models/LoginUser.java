@@ -8,7 +8,9 @@ public class LoginUser {
 	public String toString() {
 		return "LoginUser [userEmailId=" + userEmailId + ", password=" + password + "]";
 	}
-	
+
+	    public LoginUser() {} // <-- Jackson needs this
+
     @NotBlank
 	private String userEmailId;
     
