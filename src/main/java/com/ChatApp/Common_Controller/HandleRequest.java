@@ -58,7 +58,7 @@ import net.sourceforge.tess4j.TesseractException;
 
 
 @RestController
-@CrossOrigin("http://localhost:3000")
+@CrossOrigin("https://chat-app-lime-iota-22.vercel.app/")
 public class HandleRequest  {
 	
 	@Autowired
