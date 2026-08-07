@@ -27,7 +27,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 @RestController
-@CrossOrigin
+@CrossOrigin("https://chat-app-lime-iota-22.vercel.app/")
 
 public class HandleRequest2 {
 	
