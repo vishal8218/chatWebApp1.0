@@ -222,9 +222,9 @@ public class EmailService {
 		}
 	}
 
-	@Scheduled(cron = "0 0 */3 * * *")
-	public void deleteOtp() {
-		fb.deleteOtp();
-	}
+@Scheduled(cron = "0 */5 * * * *")
+public void deleteOtp() {
+    fb.deleteOtp();
+}
 
 }
