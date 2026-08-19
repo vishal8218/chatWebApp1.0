@@ -2,6 +2,7 @@ package com.ChatApp.Models;
 
 public class User {
 	String name,email,phone,password,confirmPassword;
+	public User() {}
 	public String getName() {
 		return name;
 	}
