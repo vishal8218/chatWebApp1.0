@@ -199,6 +199,7 @@
 				            <version>3.8.1</version> <!-- Make sure you're using a recent version -->
 
 				<configuration>
+					<parameters>true</parameters>
 								<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>
