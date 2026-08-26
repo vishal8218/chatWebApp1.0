@@ -196,16 +196,21 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				            <version>3.8.1</version> <!-- Make sure you're using a recent version -->
-
+				<!-- No version pinned: inherit the modern version managed by
+				     spring-boot-starter-parent, which correctly composes
+				     <parameters>true</parameters> with <annotationProcessorPaths>.
+				     (3.8.1 had a known bug where the two together silently
+				     dropped the -parameters flag.) -->
 				<configuration>
 					<parameters>true</parameters>
-								<annotationProcessorPaths>
+					<compilerArgs>
+						<arg>-parameters</arg>
+					</compilerArgs>
+					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
-							        <version>1.18.24</version> <!-- Use the latest stable version -->
-
+							<version>1.18.24</version> <!-- Use the latest stable version -->
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
