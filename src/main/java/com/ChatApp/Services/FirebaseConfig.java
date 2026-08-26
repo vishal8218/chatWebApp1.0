@@ -40,7 +40,9 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.cloud.FirestoreClient;
 import jakarta.annotation.PostConstruct;
-
+import com.google.cloud.firestore.WriteBatch;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @Repository
 public class FirebaseConfig {
