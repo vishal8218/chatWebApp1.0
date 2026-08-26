@@ -42,7 +42,6 @@ import com.google.firebase.cloud.FirestoreClient;
 import jakarta.annotation.PostConstruct;
 import com.google.cloud.firestore.WriteBatch;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 @Repository
 public class FirebaseConfig {
@@ -432,8 +431,8 @@ public class FirebaseConfig {
                 // already read.
                 if (!isRead && senderId.equals(docSenderId)) {
                     batch.update(document.getReference(), "isRead", true);
-                    newlyReadMessageIds.add(messageId);
                     isRead = true; // reflect the update in the response too
+					   batch.commit().get();
                 }
 
                 List<Object> messageDetail = new ArrayList<>();
@@ -446,22 +445,7 @@ public class FirebaseConfig {
                 messageDetails.put(i++, messageDetail);
             }
 
-            if (!newlyReadMessageIds.isEmpty()) {
-                batch.commit().get(); // wait for the write to actually complete
-
-                // Notify senderId that their messages were just read,
-                // so their client can flip the ticks blue in real time.
-                Map<String, Object> readReceiptPayload = new HashMap<>();
-                readReceiptPayload.put("reciverId", reciverID);
-                readReceiptPayload.put("messageIds", newlyReadMessageIds);
-                readReceiptPayload.put("isRead", true);
-
-                messagingTemplate.convertAndSendToUser(
-                        senderId,
-                        "/queue/message_read",
-                        readReceiptPayload
-                );
-            }
+           
         } catch (Exception e) {
             System.out.println(e);
             return null;
