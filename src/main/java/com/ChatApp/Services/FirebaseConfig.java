@@ -384,63 +384,88 @@ public class FirebaseConfig {
 //	          // Expire after 2 days
 //	          redisTemplate.expire(key, Duration.ofDays(2));
 //	    }
-	    public Map<Integer, List<Object>> displayMessage(String senderId, String reciverID) {
-	        db = (Firestore) FirestoreClient.getFirestore();
-	        Map<Integer, List<Object>> messageDetails = new HashMap<>();
+	   public Map<Integer, List<Object>> displayMessage(String senderId, String reciverID) {
+        db = (Firestore) FirestoreClient.getFirestore();
+        Map<Integer, List<Object>> messageDetails = new HashMap<>();
+        try {
+            // Query only messages between these two users, both directions —
+            // instead of scanning the whole collection and filtering in-memory.
+            ApiFuture<QuerySnapshot> future1 = db.collection("MessageData")
+                    .whereEqualTo("senderId", senderId)
+                    .whereEqualTo("reciverId", reciverID)
+                    .get();
+            ApiFuture<QuerySnapshot> future2 = db.collection("MessageData")
+                    .whereEqualTo("senderId", reciverID)
+                    .whereEqualTo("reciverId", senderId)
+                    .get();
+            List<QueryDocumentSnapshot> documents = new ArrayList<>();
+            documents.addAll(future1.get().getDocuments());
+            documents.addAll(future2.get().getDocuments());
+            // Fetch deleted-message ids ONCE (was: once per matching message).
+            Set<String> deletedMessageIds = new HashSet<>();
+            ApiFuture<QuerySnapshot> deleteFuture = db.collection("MessageDelete")
+                    .whereEqualTo("senderId", senderId)
+                    .whereEqualTo("isDeleted", true)
+                    .get();
+            for (DocumentSnapshot doc : deleteFuture.get().getDocuments()) {
+                deletedMessageIds.add(doc.getString("messageId"));
+            }
 
-	        try {
-	            // Query only messages between these two users, both directions —
-	            // instead of scanning the whole collection and filtering in-memory.
-	            ApiFuture<QuerySnapshot> future1 = db.collection("MessageData")
-	                    .whereEqualTo("senderId", senderId)
-	                    .whereEqualTo("reciverId", reciverID)
-	                    .get();
-	            ApiFuture<QuerySnapshot> future2 = db.collection("MessageData")
-	                    .whereEqualTo("senderId", reciverID)
-	                    .whereEqualTo("reciverId", senderId)
-	                    .get();
+            // reciverID is the one opening the chat right now, so only
+            // messages senderId sent TO reciverID that are still unread
+            // get flipped — never reciverID's own outgoing messages.
+            WriteBatch batch = db.batch();
+            List<String> newlyReadMessageIds = new ArrayList<>();
 
-	            List<QueryDocumentSnapshot> documents = new ArrayList<>();
-	            documents.addAll(future1.get().getDocuments());
-	            documents.addAll(future2.get().getDocuments());
+            int i = 0;
+            for (QueryDocumentSnapshot document : documents) {
+                String messageId = document.getString("messageId");
+                if (deletedMessageIds.contains(messageId)) continue;
 
-	            // Fetch deleted-message ids ONCE (was: once per matching message).
-	            Set<String> deletedMessageIds = new HashSet<>();
-	            ApiFuture<QuerySnapshot> deleteFuture = db.collection("MessageDelete")
-	                    .whereEqualTo("senderId", senderId)
-	                    .whereEqualTo("isDeleted", true)
-	                    .get();
-	            for (DocumentSnapshot doc : deleteFuture.get().getDocuments()) {
-	                deletedMessageIds.add(doc.getString("messageId"));
-	            }
+                boolean isRead = Boolean.TRUE.equals(document.getBoolean("isRead"));
+                String docSenderId = document.getString("senderId");
 
-	            int i = 0;
-	            for (QueryDocumentSnapshot document : documents) {
-	                String messageId = document.getString("messageId");
-	                if (deletedMessageIds.contains(messageId)) continue;
+                // Mark as read only messages sent by senderId to reciverID
+                // (i.e. the ones reciverID is now viewing) that aren't
+                // already read.
+                if (!isRead && senderId.equals(docSenderId)) {
+                    batch.update(document.getReference(), "isRead", true);
+                    newlyReadMessageIds.add(messageId);
+                    isRead = true; // reflect the update in the response too
+                }
 
-	                List<Object> messageDetail = new ArrayList<>();
-	                messageDetail.add("messageContent : " + mse.decrypt(document.getString("messageContent")));
-	                messageDetail.add("senderId : " + document.getString("senderId"));
-	                messageDetail.add("isRead:" + document.getBoolean("isRead"));
-	                messageDetail.add("time : " + document.get("time"));
-	                messageDetail.add("date : " + document.get("date"));
-	                messageDetail.add("messageId : " + messageId);
+                List<Object> messageDetail = new ArrayList<>();
+                messageDetail.add("messageContent : " + mse.decrypt(document.getString("messageContent")));
+                messageDetail.add("senderId : " + docSenderId);
+                messageDetail.add("isRead:" + isRead);
+                messageDetail.add("time : " + document.get("time"));
+                messageDetail.add("date : " + document.get("date"));
+                messageDetail.add("messageId : " + messageId);
+                messageDetails.put(i++, messageDetail);
+            }
 
-	                messageDetails.put(i++, messageDetail);
-	            }
-	            // NOTE: no writes here. Marking read now lives ONLY in the
-	            // explicit markAsRead() path below — fetching history never
-	            // mutates data.
+            if (!newlyReadMessageIds.isEmpty()) {
+                batch.commit().get(); // wait for the write to actually complete
 
-	        } catch (Exception e) {
-	            System.out.println(e);
-	            return null;
-	        }
-	        return messageDetails;
-	    }
-	
-	    
+                // Notify senderId that their messages were just read,
+                // so their client can flip the ticks blue in real time.
+                Map<String, Object> readReceiptPayload = new HashMap<>();
+                readReceiptPayload.put("reciverId", reciverID);
+                readReceiptPayload.put("messageIds", newlyReadMessageIds);
+                readReceiptPayload.put("isRead", true);
+
+                messagingTemplate.convertAndSendToUser(
+                        senderId,
+                        "/queue/message_read",
+                        readReceiptPayload
+                );
+            }
+        } catch (Exception e) {
+            System.out.println(e);
+            return null;
+        }
+        return messageDetails;
+    }	    
 	    public String deleteUserMessagesById(String messageId,String senderId) throws InterruptedException, ExecutionException {
 	    	  db =  (Firestore)FirestoreClient.getFirestore();
 	    	  DocumentReference docRef = db.collection("MessageData").document(messageId);
