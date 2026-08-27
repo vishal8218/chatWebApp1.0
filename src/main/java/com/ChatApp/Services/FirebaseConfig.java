@@ -409,7 +409,7 @@ public class FirebaseConfig {
 		boolean hasUpdates = false;
 		for (QueryDocumentSnapshot doc : future2Docs) {
 			Boolean isRead = doc.getBoolean("isRead");
-			if (isRead == null || !isRead) {
+			if ((isRead == null || !isRead) && doc.getString("reciverId").equalsIgnoreCase(senderId) {
 				batch.update(doc.getReference(), "isRead", true);
 				hasUpdates = true;
 			}
