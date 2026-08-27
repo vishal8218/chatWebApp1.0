@@ -941,49 +941,26 @@ public class FirebaseConfig {
 
 		}
 		public void isChatOpen(String senderId, String reciverId) {
-			// TODO Auto-generated method stub
-			
-			 db =  (Firestore)FirestoreClient.getFirestore();
+    db = (Firestore) FirestoreClient.getFirestore();
+    try {
+        List<QueryDocumentSnapshot> docs = db.collection("MessageData")
+                .whereEqualTo("senderId", reciverId)
+                .whereEqualTo("reciverId", senderId)
+                .get().get().getDocuments();
 
-	    	  ApiFuture<QuerySnapshot> future = db.collection("MessageData").get();
-	    	  try {
-		        List<QueryDocumentSnapshot> documents = future.get().getDocuments();
-		        for(DocumentSnapshot document :documents)
-		        {
-		        	
-		        	String senderIds=document.getString("senderId");
-		        	String reciverIds=document.getString("reciverId");
-		        	if(senderId.equals(reciverIds) && reciverId.equals(senderIds)  )
-		        	{
-		    			
-		 		        
-            
-
-			    
-			        		DocumentReference docRef = db.collection("MessageData").document(document.getString("messageId"));
-			    			
-			                
-			          	   
-			      			 ApiFuture<DocumentSnapshot> messageDataFeature = docRef.get();
-			      			 DocumentSnapshot documentDataFeature = messageDataFeature.get();
-			      			 
-			      		       if(documentDataFeature .exists())
-			      		       {
-			      		    	    Map<String, Object> updates = new HashMap<>();
-			      		    	 //   updates.put("isRead", true);
-			      		    	    updates.put("isChatOpen", true);
-
-			      		    	   docRef.update(updates);
-			      		       }
-			        		}
-
-			
-		        }
-	    	  }catch(Exception e)
-	    	  {
-	    		  System.out.println("Chat Open");
-	    	  }
-		        
+        WriteBatch batch = db.batch();
+        boolean hasUpdates = false;
+        for (QueryDocumentSnapshot doc : docs) {
+            Boolean chatOpen = doc.getBoolean("isChatOpen");
+            if (chatOpen == null || !chatOpen) {
+                batch.update(doc.getReference(), "isChatOpen", true);
+                hasUpdates = true;
+            }
+        }
+        if (hasUpdates) batch.commit(); // no need to block here unless a caller depends on it
+    } catch (Exception e) {
+        // log properly instead of System.out.println("Chat Open")
+    }
 }
 		public String updateUserProfilePicture(String userId, MultipartFile file) throws Exception {
 			// TODO Auto-generated method stub
