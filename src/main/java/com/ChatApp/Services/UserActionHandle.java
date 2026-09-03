@@ -5,12 +5,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import com.ChatApp.Models.ChatLock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ChatApp.Models.User;
-import com.ChatApp.Models.Users;
 
 @Service
 public class UserActionHandle {
@@ -149,6 +149,21 @@ public class UserActionHandle {
 	public String getProfileUrl(String email) throws InterruptedException, ExecutionException
 	{
 		return fb.getProfileUrl(email);
+	}
+	public Map<String ,Object>setChatLock(ChatLock chatLock)
+	{
+		return fb.setChatLock(chatLock);
+	}
+
+
+	public Map<String,Object> verifyChatLock(ChatLock chatLock)
+	{
+		return  fb.verifyChatLock(chatLock);
+	}
+	
+	public  Map<String,Object> removeChatLock(ChatLock chatLock)
+	{
+		return fb.removeChatLock(chatLock);
 	}
 	
 	
