@@ -63,6 +63,8 @@ public class FirebaseConfig {
 	 
 	 private HashMap<String,String>emailAndPassword=new HashMap<>();
 	 private HashMap<String,String>emailAndUserId=new HashMap<>();
+		private static final String CHAT_LOCK_USERS_COLLECTION = "chatLockUsers";
+
        
 	 
 	
