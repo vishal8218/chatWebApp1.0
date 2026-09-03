@@ -17,6 +17,7 @@ import java.util.concurrent.ExecutionException;
 import javax.imageio.ImageIO;
 import javax.validation.Valid;
 
+import com.ChatApp.Models.*;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,12 +39,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.ChatApp.Models.LoginUser;
-import com.ChatApp.Models.MessageContent;
-import com.ChatApp.Models.MessageUser;
-import com.ChatApp.Models.User;
-import com.ChatApp.Models.UserIds;
-import com.ChatApp.Models.Users;
 import com.ChatApp.Services.EmailService;
 import com.ChatApp.Services.JwtUtil;
 import com.ChatApp.Services.MessagesUtils;
@@ -54,8 +49,6 @@ import com.google.gson.JsonParser;
 import jakarta.servlet.http.HttpServletResponse;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
-
-
 
 @RestController
 @CrossOrigin("https://chat-app-lime-iota-22.vercel.app/")
@@ -581,5 +574,51 @@ public void logout(@RequestHeader("Authorization")String token) throws Interrupt
 	   return result;
 
    }
+	@PostMapping("/lockuser")
+	 	public  ResponseEntity<Map<String,Object>> lockUser(@RequestBody ChatLock chatLock,@RequestHeader ("Authorization")String token) throws Exception
+	 {
+		 Map<String, Object>response =new HashMap<>();
+		 if(userHandle.tokenIsValid(token))
+		 {
+             response=userHandle.setChatLock(chatLock);
+			 return new ResponseEntity<>(response, HttpStatus.ACCEPTED
+			 );
+
+		 }
+
+		 return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+
+	 }
+	 @PostMapping("/verifychatlock")
+	 public  ResponseEntity<Map<String,Object>> verifyChatLock(@RequestBody  ChatLock chatLock ,@RequestHeader ("Authorization")String token) throws ExecutionException, InterruptedException {
+		 Map<String, Object>response =new HashMap<>();
+		 if(userHandle.tokenIsValid(token))
+		 {
+			 response=userHandle.verifyChatLock(
+					 chatLock);
+			 return new ResponseEntity<>(response, HttpStatus.ACCEPTED
+			 );
+
+		 }
+		 return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+
+	 }
+	 @DeleteMapping("/removechatlock")
+	 public  ResponseEntity<Map<String,Object>> removeChatLock(@RequestBody  ChatLock chatLock ,@RequestHeader ("Authorization")String token) throws ExecutionException, InterruptedException {
+		 Map<String, Object>response =new HashMap<>();
+		 if(userHandle.tokenIsValid(token))
+		 {
+			 response=userHandle.removeChatLock(
+
+					 chatLock);
+			 return new ResponseEntity<>(response, HttpStatus.ACCEPTED
+			 );
+
+		 }
+		 return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+
+	 }
+
+
    
 }
