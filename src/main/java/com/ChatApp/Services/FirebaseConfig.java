@@ -14,11 +14,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
+import com.ChatApp.Models.ChatLock;
 import com.google.cloud.Timestamp;
 import java.time.ZoneId;
 
 import java.util.concurrent.ExecutionException;
 
+import com.google.cloud.firestore.*;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
@@ -30,18 +34,10 @@ import com.ChatApp.Models.User;
 import com.ChatApp.Models.Users;
 import com.google.api.core.ApiFuture;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.firestore.DocumentReference;
-import com.google.cloud.firestore.DocumentSnapshot;
-import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.QueryDocumentSnapshot;
-import com.google.cloud.firestore.QuerySnapshot;
-import com.google.cloud.firestore.WriteResult;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.cloud.FirestoreClient;
 import jakarta.annotation.PostConstruct;
-import com.google.cloud.firestore.WriteBatch;
-import org.springframework.beans.factory.annotation.Autowired;
 
 @Repository
 public class FirebaseConfig {
@@ -1024,6 +1020,212 @@ public class FirebaseConfig {
 	        return "User Account does not exist";
 	
 }
+
+
+	public Map<String, Object> setChatLock(@NonNull ChatLock chatLock) {
+
+		Map<String, Object> response = new HashMap<>();
+		Firestore db = FirestoreClient.getFirestore();
+
+		try {
+			String senderId = chatLock.getSenderId();
+			String receiverId = chatLock.getReceiverId();
+
+			CollectionReference friendListRef = db.collection("FriendList");
+
+			// Find the friendList doc (check both directions)
+			ApiFuture<QuerySnapshot> future1 = friendListRef
+					.whereEqualTo("fromUserId", senderId)
+					.whereEqualTo("friendUserId", receiverId)
+					.get();
+
+			QuerySnapshot snapshot = future1.get();
+
+			if (snapshot.isEmpty()) {
+				ApiFuture<QuerySnapshot> future2 = friendListRef
+						.whereEqualTo("fromUserId", senderId)
+						.whereEqualTo("friendUserId", receiverId)
+						.get();
+
+				snapshot = future2.get();
+			}
+
+			if (snapshot.isEmpty()) {
+				response.put("status", false);
+				response.put("message", "Friend record not found");
+				return response;
+			}
+
+			DocumentSnapshot friendDoc = snapshot.getDocuments().get(0);
+			DocumentReference friendDocRef = friendDoc.getReference();
+
+			// Check if chat is already locked before doing anything else
+			Boolean existingIsLock = friendDoc.getBoolean("isLock");
+			if (Boolean.TRUE.equals(existingIsLock)) {
+				response.put("status", false);
+				response.put("message", "chatAlreadyLocked");
+				return response;
+			}
+
+			// Add/update isLock field on the friendList doc
+			Map<String, Object> updates = new HashMap<>();
+			updates.put("isLock", chatLock.getIsLock());
+
+			ApiFuture<WriteResult> writeResult = friendDocRef.update(updates);
+			writeResult.get();
+
+			response.put("status", true);
+			response.put("message", "isLock updated successfully");
+			response.put("friendDocId", friendDoc.getId());
+
+		} catch (InterruptedException | ExecutionException e) {
+			response.put("status", false);
+			response.put("message", "Error updating isLock: " + e.getMessage());
+			Thread.currentThread().interrupt();
+			return response;
+		}
+
+		try {
+			String uuid = UUID.randomUUID().toString();
+			DocumentReference chatLockUserRef = db.collection(CHAT_LOCK_USERS_COLLECTION)
+					.document(uuid);
+
+			Map<String, Object> lockData = new HashMap<>();
+			lockData.put("chatLockId", uuid);
+			lockData.put("senderId", chatLock.getSenderId());
+			lockData.put("receiverId", chatLock.getReceiverId());
+			lockData.put("chatPassword", passwordUtil.encryptPassword(chatLock.getPassword()));
+			lockData.put("currentTime", FieldValue.serverTimestamp());
+
+			ApiFuture<WriteResult> chatLockWrite = chatLockUserRef.set(lockData);
+			chatLockWrite.get();
+
+			response.put("status", true);
+			response.put("message", "Chat lock updated successfully");
+			response.put("chatLockUserId", uuid);
+
+		} catch (InterruptedException | ExecutionException e) {
+			response.put("status", false);
+			response.put("message", "Error updating chat lock: " + e.getMessage());
+			Thread.currentThread().interrupt();
+		}
+
+		return response;
+	}
+
+	public Map<String, Object> verifyChatLock(ChatLock chatLock) {
+
+		Map<String, Object> response = new HashMap<>();
+		Firestore db = FirestoreClient.getFirestore();
+
+		try {
+			String senderId = chatLock.getSenderId();
+			String receiverId = chatLock.getReceiverId();
+			String enteredPassword = chatLock.getPassword();
+
+			CollectionReference chatLockUsersRef = db.collection(CHAT_LOCK_USERS_COLLECTION);
+
+			ApiFuture<QuerySnapshot> future = chatLockUsersRef
+					.whereEqualTo("senderId", senderId)
+					.whereEqualTo("receiverId", receiverId)
+					.get();
+
+			QuerySnapshot snapshot = future.get();
+
+			if (snapshot.isEmpty()) {
+				response.put("status", false);
+				response.put("message", "Chat lock record not found");
+				return response;
+			}
+
+			DocumentSnapshot doc = snapshot.getDocuments().get(0);
+			String storedPassword = doc.getString("chatPassword");
+
+			if (storedPassword == null) {
+				response.put("status", false);
+				response.put("message", "No password set for this lock");
+				return response;
+			}
+             String encryPassword=passwordUtil.encryptPassword(enteredPassword);
+
+			if (encryPassword.equalsIgnoreCase(storedPassword)) {
+				response.put("status", true);
+				response.put("message", "chat is unlocked");
+			} else {
+				response.put("status", false);
+				response.put("message", "Incorrect password");
+			}
+
+		} catch (InterruptedException | ExecutionException e) {
+			response.put("status", false);
+			response.put("message", "Error verifying chat lock: " + e.getMessage());
+			Thread.currentThread().interrupt();
+		}
+
+		return response;
+	}
+
+	public Map<String, Object> removeChatLock(ChatLock chatLock) {
+
+		Map<String, Object> response = new HashMap<>();
+		Firestore db = FirestoreClient.getFirestore();
+
+		try {
+			String senderId = chatLock.getSenderId();
+			String receiverId = chatLock.getReceiverId();
+
+			CollectionReference chatLockUsersRef = db.collection(CHAT_LOCK_USERS_COLLECTION);
+
+			ApiFuture<QuerySnapshot> future = chatLockUsersRef
+					.whereEqualTo("senderId", senderId)
+					.whereEqualTo("receiverId", receiverId)
+					.get();
+
+			QuerySnapshot snapshot = future.get();
+
+			if (snapshot.isEmpty()) {
+				response.put("status", false);
+				response.put("message", "Chat lock record not found");
+				return response;
+			}
+
+			// Delete the matched document(s) from chatLockUsers
+			for (DocumentSnapshot doc : snapshot.getDocuments()) {
+				ApiFuture<WriteResult> deleteResult = doc.getReference().delete();
+				deleteResult.get();
+			}
+
+			// Find matching FriendList doc and set isLock back to false
+			CollectionReference friendListRef = db.collection("FriendList");
+
+			ApiFuture<QuerySnapshot> friendFuture = friendListRef
+					.whereEqualTo("fromUserId", senderId)
+					.whereEqualTo("friendUserId", receiverId)
+					.get();
+
+			QuerySnapshot friendSnapshot = friendFuture.get();
+
+			if (!friendSnapshot.isEmpty()) {
+				for (DocumentSnapshot friendDoc : friendSnapshot.getDocuments()) {
+					Map<String, Object> updates = new HashMap<>();
+					updates.put("isLock", false);
+
+					ApiFuture<WriteResult> updateResult = friendDoc.getReference().update(updates);
+					updateResult.get();
+				}
+			}
+
+			response.put("status", true);
+			response.put("message", "chat lock removed");
+
+		} catch (InterruptedException | ExecutionException e) {
+			response.put("status", false);
+			response.put("message", "Error removing chat lock: " + e.getMessage());
+			Thread.currentThread().interrupt();
+		}
+
+		return response;
+	}
 
 	
 }
