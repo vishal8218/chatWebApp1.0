@@ -620,5 +620,18 @@ public void logout(@RequestHeader("Authorization")String token) throws Interrupt
 	 }
 
 
+	@DeleteMapping("/accountDelete")
+	public ResponseEntity<Map<String, Object>> accountDelete(
+			@RequestBody Map<String, String> requestBody,
+			@RequestHeader("Authorization") String token) throws ExecutionException, InterruptedException {
+
+		Map<String, Object> response = new HashMap<>();
+
+		if (userHandle.tokenIsValid(token)) {
+			response = userHandle.accountDelete(requestBody.get("userId"), token);
+			return new ResponseEntity<>(response, HttpStatus.ACCEPTED);
+		}
+		return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+	}
    
 }
