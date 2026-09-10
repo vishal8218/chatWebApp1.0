@@ -159,6 +159,7 @@ public class FirebaseConfig {
 	  	  	  	credentialsData .put("userId",emailAndUserId.get(userEmail));
 	  	  		credentialsData .put("email", userEmail);
 	  	  	   credentialsData.put("password", passwordUtil.encryptPassword(emailAndPassword.get(userEmail)));
+			credentialsData.put("isDeleted", false);
 	 		    db.collection("CredentialsData").document(emailAndUserId.get(userEmail)).set(credentialsData);
 			 
 			
