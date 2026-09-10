@@ -259,81 +259,60 @@ public class FirebaseConfig {
 
 	    }
 	    
-	    public  Map<String ,Object> checkCredentials(String userEmail,String userPassword) throws Exception {
-	         db = FirestoreClient.getFirestore();
-              Map<String ,Object>response=new HashMap<>();
-	        ApiFuture<QuerySnapshot> future = db.collection("CredentialsData").get();
-	        List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+	   	public Map<String, Object> checkCredentials(String userEmail, String userPassword) throws Exception {
+		db = FirestoreClient.getFirestore();
+		Map<String, Object> response = new HashMap<>();
+		ApiFuture<QuerySnapshot> future = db.collection("CredentialsData").get();
+		List<QueryDocumentSnapshot> documents = future.get().getDocuments();
 
-              
-	        for (DocumentSnapshot doc : documents) {
-	           
-	              String tempUserId=doc.getString("email");
-	              String temPassword=(doc.getString("password"));  
-	              String encryptedPassword=passwordUtil.encryptPassword(userPassword);
-	        if(tempUserId.equals(userEmail))
-	        {
-	     
-	        	if(temPassword.equals(encryptedPassword))
-	        	{
-	        	  String token=jwtUtil.generateToken(userEmail);
-	      	    Map<String, Object> accessToken = new HashMap<>();  
-	  	  	  	accessToken .put("jwtToken",token);
-	  	  	    accessToken .put("isExpired", false);
-	  	  	   accessToken.put("timeStamp",Timestamp.now());
-	  		  Firestore tempDb=FirestoreClient.getFirestore();
+		for (DocumentSnapshot doc : documents) {
 
-	 		    tempDb.collection("Store_Jwt_tokens").document(token).set(accessToken);
-	        	  response.put("Status", true);
-	        	  response.put("token", token);
-	        	  response.put("Profile_Url", doc.getString("profileImageUrl"));
-	        	  response.put("Message","Login Successfully !" );
-	        	  
-	        		return response;
-	        	}
-	        	else
-	        	{
-	        		 response.put("Status", false);
-		        	  response.put("Message","Password is wrong" );
-	        		return response;
-	        	}
-	        }
-	        else if(temPassword.equals(encryptedPassword))
-	        {
-	        	if(tempUserId.equals(userEmail))
-	        	{
-	        		 String token=jwtUtil.generateToken(userEmail);
-	        		 Map<String, Object> accessToken = new HashMap<>();  
-	 	  	  	  	accessToken .put("jwtToken",token);
-	 	  	  	    accessToken .put("isExpired", false);
-	 	  	  	   accessToken.put("timeStamp",Timestamp.now());
-	 	  		  Firestore tempDb=FirestoreClient.getFirestore();
+			String tempUserId = doc.getString("email");
+			String temPassword = doc.getString("password");
+			String encryptedPassword = passwordUtil.encryptPassword(userPassword);
 
-	 	 		    tempDb.collection("Store_Jwt_tokens").document(token).set(accessToken);
-	 	        	  response.put("Status", true);
-	 	        	  response.put("token", token);
-		        	  response.put("Profile_Url", doc.getString("profileImageUrl"));
+			if (tempUserId.equals(userEmail)) {
 
-	 	        	  response.put("Message","Login Successfully !" );
+				// ---- isDeleted check goes here, before password validation ----
+				Boolean isDeleted = doc.getBoolean("isDeleted");
+				if (isDeleted != null && isDeleted) {
+					response.put("Status", false);
+					response.put("Message", "Account is Deleted");
+//					response.put("httpStatus", 403); // Forbidden — account exists but access is blocked
+					return response;
+				}
 
-                
-	 	        		return response;
+				if (temPassword.equals(encryptedPassword)) {
+					String token = jwtUtil.generateToken(userEmail);
+					Map<String, Object> accessToken = new HashMap<>();
+					accessToken.put("jwtToken", token);
+					accessToken.put("isExpired", false);
+					accessToken.put("timeStamp", Timestamp.now());
+					Firestore tempDb = FirestoreClient.getFirestore();
 
-	        	}
-	        	else
-	        	{
-	        		 response.put("Status", false);
-		        	  response.put("Message","Email is wrong" );
-	        		return response;
-	        		
-	        	}
-	        }
-	       
-	        }
-	        response.put("Status", false);
-	        response.put("Message", "Email id & Password both are wrong");
-	        return response;
-	    }
+					tempDb.collection("Store_Jwt_tokens").document(token).set(accessToken);
+					response.put("Status", true);
+					response.put("token", token);
+					response.put("Profile_Url", doc.getString("profileImageUrl"));
+					response.put("Message", "Login Successfully !");
+//					response.put("httpStatus", 200);
+//
+					return response;
+				} else {
+					response.put("Status", false);
+					response.put("Message", "Password is wrong");
+				///	response.put("httpStatus", 401); // Unauthorized
+					return response;
+				}
+			}
+		}
+
+		response.put("Status", false);
+		response.put("Message", "Email id & Password both are wrong");
+	//	response.put("httpStatus", 404); // Not Found — no matching email at all
+		return response;
+	}
+
 	    
 	    public boolean saveMessage(MessageContent messContent)
 	    {
@@ -1229,7 +1208,48 @@ public class FirebaseConfig {
 		return response;
 	}
 
-	
+		public Map<String, Object> accountDelete(String userId, String token) {
+		Map<String, Object> response = new HashMap<>();
+
+		try {
+			Firestore db = FirestoreClient.getFirestore(); // your existing Firestore instance
+
+			// Step 1: Query CredentialsData collection where userId field matches
+			QuerySnapshot querySnapshot = db.collection("CredentialsData")
+					.whereEqualTo("userId", userId)
+					.get()
+					.get(); // .get().get() -> ApiFuture then blocking get()
+
+			List<QueryDocumentSnapshot> documents = querySnapshot.getDocuments();
+
+			if (documents.isEmpty()) {
+				response.put("status", "failure");
+				response.put("message", "No matching user found for userId: " + userId);
+				return response;
+			}
+
+			// Step 2: Update isDeleted field to true for the matched document
+			DocumentReference docRef = documents.get(0).getReference();
+
+			Map<String, Object> updates = new HashMap<>();
+			updates.put("isDeleted", true);
+
+			docRef.update(updates).get(); // blocking call to confirm update
+
+			response.put("status", "success");
+			response.put("message", "Account marked as deleted successfully");
+			response.put("userId", userId);
+			setTokenIsExpired(token);
+
+		} catch (InterruptedException | ExecutionException e) {
+			response.put("status", "error");
+			response.put("message", "Failed to delete account: " + e.getMessage());
+			Thread.currentThread().interrupt(); // restore interrupt status
+		}
+
+		return response;
+	}
+
 }
 		
 //		public void addToken(String email,String token,String prevToken) throws InterruptedException, ExecutionException
