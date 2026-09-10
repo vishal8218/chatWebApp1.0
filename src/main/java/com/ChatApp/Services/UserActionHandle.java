@@ -167,7 +167,10 @@ public class UserActionHandle {
 	}
 	
 	
-	
+		public   Map<String,Object> accountDelete(String userId, String token)
+	{
+		return fb.accountDelete(userId,token);
+	}
 	
 	
 }
