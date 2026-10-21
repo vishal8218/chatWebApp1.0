@@ -26,8 +26,7 @@ jobs:
 
       - name: Run Postman collection
         run: |
-          mkdir -p results
-                  newman run postman/ChatApp.json \
+          newman run postman/ChatApp.json \
             --env-var "baseUrl=${{ secrets.BASE_URL }}" \
             --reporters cli,htmlextra,junit \
             --reporter-htmlextra-export results/report.html \
