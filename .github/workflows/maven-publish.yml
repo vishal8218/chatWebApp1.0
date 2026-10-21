@@ -1,0 +1,43 @@
+name: API Tests (Newman)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:   # lets you run it manually from the Actions tab
+
+jobs:
+  newman:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Downloads your repo (including the postman/ folder) onto the CI machine
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Newman and HTML reporter
+        run: npm install -g newman newman-reporter-htmlextra
+
+      - name: Run Postman collection
+        run: |
+          mkdir -p results
+          newman run postman/ChatApp.json \
+            -e postman/TestingEnv.json \
+            --env-var "baseUrl=${{ secrets.BASE_URL }}" \
+            --reporters cli,htmlextra,junit \
+            --reporter-htmlextra-export results/report.html \
+            --reporter-junit-export results/newman.xml
+
+      # Runs even when tests fail, so you can download the report
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-report
+          path: results/
