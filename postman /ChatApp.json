@@ -1,1 +1,270 @@
-
+{
+  "info": {
+    "_postman_id": "b390219e-b9cc-482d-a5be-4b27d3f6e099",
+    "name": "ChatApp",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "23235591",
+    "_collection_link": "https://go.postman.co/collection/23235591-b390219e-b9cc-482d-a5be-4b27d3f6e099?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "loginApi",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "getFriendList",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/get_friends?userEmail=vk368065@gmail.com",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "get_friends"
+          ],
+          "query": [
+            {
+              "key": "userEmail",
+              "value": "vk368065@gmail.com"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "profileDetailUpdate",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "http://localhost:8448/get_friends",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"receiverId\":\"129b7800-a6a8-4779-87e8-1719445467c0\",\r\n    \"senderId\":\"940253ae-ca01-4c90-a564-bcf8f33444ec\",\r\n    \"isLock\":true,\r\n    \"password\":\"7777\"\r\n}\r\n\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/lockuser",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "lockuser"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"name\":\"vishal\",\r\n\r\n    \"email\":\"vk368065@gmail.com\",\r\n    \"phone\":\"8218394110\",\r\n    \"password\":\"1234\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/register_new_user",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "register_new_user"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "{{baseUrl}}/removechatlock",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authToken}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"receiverId\":\"6ffa25c6-63a0-42f5-a57c-749ff17a5ab2\",\r\n    \"senderId\":\"940253ae-ca01-4c90-a564-bcf8f33444ec\",\r\n    \r\n    \"password\":\"7774\"\r\n}\r\n\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/removechatlock",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "removechatlock"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "{{baseUrl}}/verifychatlocks",
+      "request": {
+        "method": "VISHAL",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authToken}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"receiverId\":\"129b7800-a6a8-4779-87e8-1719445467c0\",\r\n    \"senderId\":\"940253ae-ca01-4c90-a564-bcf8f33444ec\",\r\n    \"password\":\"7777\"\r\n}\r\n\r\n",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/verifychatlocks",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "verifychatlocks"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "{{baseUrl}}/get_friends",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authToken}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/get_friends?userEmail=testStaff27@yopmail.com",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "get_friends"
+          ],
+          "query": [
+            {
+              "key": "userEmail",
+              "value": "testStaff27@yopmail.com"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "{{baseUrl}}/verifyotp",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/verifyotp?otp=9539",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "verifyotp"
+          ],
+          "query": [
+            {
+              "key": "otp",
+              "value": "9539",
+              "type": "text"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "{{baseUrl}}/accountDelete",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "{{authToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"userId\":\"fb8ac9e5-3260-413a-bec6-d1bfb10e73d4\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/accountDelete",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "accountDelete"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
